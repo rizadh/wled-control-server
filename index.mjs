@@ -1,43 +1,50 @@
 import express from "express";
 import bodyParser from "body-parser";
-const states = {};
+
+const PORT = process.env.WLED_CONTROL_SERVER_PORT || 3000;
 
 const app = express();
 app.use(bodyParser.json());
+
+const states = {};
+
+app.get("/", (_, res) => {
+  res.send({ states });
+});
 
 app.post("/save", async (req, res) => {
   const { server } = req.body;
   if (!server) {
     res.status(400);
-    res.send({});
+    res.send({ error: "server is required" });
     return;
   }
 
-  if (states[server]) {
-    res.status(200);
-  } else {
-    states[server] = await fetch(getEndpoint(server)).then((res) => res.json());
+  if (!(server in states)) {
+    states[server] = await fetch(`http://${server}/json/state`).then((res) =>
+      res.json()
+    );
     res.status(201);
   }
 
-  res.send(states[server]);
+  res.send({ result: states[server] });
 });
 
 app.post("/restore", async (req, res) => {
   const { server } = req.body;
   if (!server) {
     res.status(400);
-    res.send({});
+    res.send({ error: "server is required" });
     return;
   }
 
   if (!states[server]) {
     res.status(404);
-    res.send({});
+    res.send({ error: "no state saved for server" });
     return;
   }
 
-  const state = await fetch(getEndpoint(server), {
+  const wledResponse = await fetch(`http://${server}/json/state`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -47,11 +54,8 @@ app.post("/restore", async (req, res) => {
   delete states[server];
 
   res.status(200);
-  res.send(state);
+  res.send({ result: wledResponse });
 });
 
-function getEndpoint(server) {
-  return server + "/json/state";
-}
-
-app.listen(3000);
+app.listen(PORT);
+console.log(`Listening on port ${PORT}`);
