@@ -1,11 +1,13 @@
 import express from "express";
 import bodyParser from "body-parser";
 import randomstring from "randomstring";
+import morgan from "morgan";
 
 const PORT = process.env.WLED_CONTROL_SERVER_PORT || 3000;
 
 const app = express();
 app.use(bodyParser.json());
+app.use(morgan("dev"));
 
 const servers = {};
 
