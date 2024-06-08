@@ -6,8 +6,8 @@ import morgan from "morgan";
 const PORT = process.env.WLED_CONTROL_SERVER_PORT || 3000;
 
 const app = express();
-app.use(bodyParser.json());
 app.use(morgan("dev"));
+app.use(bodyParser.json());
 
 const servers = {};
 
