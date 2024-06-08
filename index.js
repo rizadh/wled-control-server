@@ -21,6 +21,14 @@ app.get("/server/:server/events", (req, res) => {
   res.send(servers[server]?.events ?? []);
 });
 
+app.delete("/server/:server/events", async (req, res) => {
+  const { server } = req.params;
+
+  const count = await removeAllServerEvents(server);
+
+  res.send({ count });
+});
+
 app.post("/server/:server/event", async (req, res) => {
   const { server } = req.params;
   if (!server) {
@@ -91,6 +99,18 @@ async function createServerEvent(server) {
   return key;
 }
 
+async function removeAllServerEvents(server) {
+  if (!servers[server]?.events.length) return 0;
+
+  const firstEvent = servers[server].events[0];
+  applyServerState(server, firstEvent.state);
+
+  const eventCount = servers[server].events.length;
+  delete servers[server];
+
+  return eventCount;
+}
+
 async function removeServerEvent(server, key) {
   if (!servers[server]) throw new ServerNotFoundError();
 
@@ -104,6 +124,7 @@ async function removeServerEvent(server, key) {
   const [event] = servers[server].events.splice(eventIndex, 1);
   if (isLastEvent) {
     await applyServerState(server, event.state);
+    if (servers[server].events.length === 0) delete servers[server];
     return true;
   } else {
     const nextEvent = servers[server].events[eventIndex];
