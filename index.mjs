@@ -22,7 +22,7 @@ app.get("/server/:server/events", (req, res) => {
 });
 
 app.post("/server/:server/event", async (req, res) => {
-  const { server } = req.body;
+  const { server } = req.params;
   if (!server) {
     res.status(400);
     res.send({ error: "'server' is required" });
