@@ -1,140 +1,59 @@
 import express from "express";
 import bodyParser from "body-parser";
-import randomstring from "randomstring";
 import morgan from "morgan";
+import Server from "./Server.js";
+import { EventNotFoundError } from "./EventCollection.js";
 
-const PORT = process.env.WLED_CONTROL_SERVER_PORT || 3000;
+const PORT = parseInt(process.env.WLED_CONTROL_SERVER_PORT) || 3000;
 
 const app = express();
 app.use(morgan("dev"));
 app.use(bodyParser.json());
 
-const servers = {};
-
 app.get("/servers", (_, res) => {
-  res.send(Object.keys(servers));
+  res.send(Server.hosts);
 });
 
-app.get("/server/:server/events", (req, res) => {
-  const { server } = req.params;
-
-  res.send(servers[server]?.events ?? []);
+app.get("/server/:host/events", (req, res) => {
+  const { host } = req.params;
+  const server = Server.getByHost(host);
+  res.send(server.events);
 });
 
-app.delete("/server/:server/events", async (req, res) => {
-  const { server } = req.params;
+app.delete("/server/:host/events", async (req, res) => {
+  const { host } = req.params;
 
-  const count = await removeAllServerEvents(server);
+  const server = Server.getByHost(host);
+  const applied = await server.deleteAllEvents();
 
-  res.send({ count });
+  res.send({ applied });
 });
 
-app.post("/server/:server/event", async (req, res) => {
-  const { server } = req.params;
-  if (!server) {
-    res.status(400);
-    res.send({ error: "'server' is required" });
-    return;
-  }
+app.post("/server/:host/event", async (req, res) => {
+  const { host } = req.params;
 
-  const key = await createServerEvent(server);
+  const server = Server.getByHost(host);
+  const key = await server.createEvent();
 
   res.send({ key });
 });
 
-app.delete("/server/:server/event/:key", async (req, res) => {
-  const { server, key } = req.params;
-  if (!server) {
-    res.status(400);
-    res.send({ error: "'server' is required" });
-    return;
-  }
-  if (!key) {
-    res.status(400);
-    res.send({ error: "'key' is required" });
-    return;
-  }
+app.delete("/server/:host/event/:key", async (req, res) => {
+  const { host, key } = req.params;
+  const server = Server.getByHost(host);
 
   try {
-    const applied = await removeServerEvent(server, key);
+    const applied = await server.deleteEvent(key);
     res.send({ applied });
   } catch (error) {
-    if (error instanceof ServerNotFoundError) {
-      res.status(404);
-      res.send({ error: "Server not found" });
-      return;
-    }
-
     if (error instanceof EventNotFoundError) {
-      res.status(404);
-      res.send({ error: "Event not found" });
+      res.status(404).send({ error: "Event not found" });
       return;
     }
 
     throw error;
   }
 });
-
-function getServerState(server) {
-  return fetch(`http://${server}/json/state`).then((res) => res.json());
-}
-
-function applyServerState(server, state) {
-  return fetch(`http://${server}/json/state`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(state),
-  }).then((res) => res.json());
-}
-
-async function createServerEvent(server) {
-  servers[server] ??= { events: [] };
-
-  const key = randomstring.generate();
-  const state = await getServerState(server);
-  servers[server].events.push({ key, state });
-
-  return key;
-}
-
-async function removeAllServerEvents(server) {
-  if (!servers[server]?.events.length) return 0;
-
-  const firstEvent = servers[server].events[0];
-  applyServerState(server, firstEvent.state);
-
-  const eventCount = servers[server].events.length;
-  delete servers[server];
-
-  return eventCount;
-}
-
-async function removeServerEvent(server, key) {
-  if (!servers[server]) throw new ServerNotFoundError();
-
-  const eventIndex = servers[server].events.findIndex(
-    (event) => event.key === key
-  );
-
-  if (eventIndex === -1) throw new EventNotFoundError();
-
-  const isLastEvent = eventIndex === servers[server].events.length - 1;
-  const [event] = servers[server].events.splice(eventIndex, 1);
-  if (isLastEvent) {
-    await applyServerState(server, event.state);
-    if (servers[server].events.length === 0) delete servers[server];
-    return true;
-  } else {
-    const nextEvent = servers[server].events[eventIndex];
-    nextEvent.state = event.state;
-    return false;
-  }
-}
-
-class ServerNotFoundError extends Error {}
-class EventNotFoundError extends Error {}
 
 app.listen(PORT);
 console.log(`Listening on port ${PORT}`);
