@@ -1,20 +1,23 @@
 import { Mutex } from "async-mutex";
-import EventCollection from "./EventCollection.js";
+import EventCollection from "./EventCollection.ts";
+
+type WledState = unknown;
 
 export default class Server {
-  static instances = {};
+  static instances: Record<string, Server | undefined> = {};
   #mutex = new Mutex();
   #events = new EventCollection();
+  host: string;
 
   static get hosts() {
     return Object.keys(this.instances);
   }
 
-  static getByHost(host) {
+  static getByHost(host: string) {
     return (this.instances[host] ??= new Server(host));
   }
 
-  constructor(host) {
+  constructor(host: string) {
     this.host = host;
   }
 
@@ -28,7 +31,7 @@ export default class Server {
     );
   }
 
-  #applyState(state) {
+  #applyState(state: WledState) {
     return this.#mutex.runExclusive(() =>
       fetch(`http://${this.host}/json/state`, {
         method: "POST",
@@ -44,7 +47,7 @@ export default class Server {
     return this.#events.create(await this.#getState());
   }
 
-  async deleteEvent(key) {
+  async deleteEvent(key: string) {
     const state = this.#events.delete(key);
     if (state) await this.#applyState(state);
     return !!state;

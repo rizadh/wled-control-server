@@ -1,20 +1,25 @@
 import randomstring from "randomstring";
 
-export default class EventCollection {
-  #events = [];
+type Event<S> = {
+  key: string;
+  state: S;
+};
+
+export default class EventCollection<S> {
+  #events: Event<S>[] = [];
 
   getAll() {
     return this.#events;
   }
 
-  create(state) {
+  create(state: S) {
     const key = randomstring.generate();
     const event = { key, state };
     this.#events.push(event);
     return key;
   }
 
-  delete(key) {
+  delete(key: string) {
     const index = this.#events.findIndex((event) => event.key === key);
     if (index === -1) throw new EventNotFoundError();
     const nextEvent = this.#events[index + 1];

@@ -1,13 +1,13 @@
 import express from "express";
 import bodyParser from "body-parser";
 import morgan from "morgan";
-import Server from "./Server.js";
-import { EventNotFoundError } from "./EventCollection.js";
+import Server from "./Server.ts";
+import { EventNotFoundError } from "./EventCollection.ts";
 
-const PORT = parseInt(process.env.WLED_CONTROL_SERVER_PORT) || 3000;
+const PORT = parseInt(process.env.WLED_CONTROL_SERVER_PORT ?? "3000");
 
 const app = express();
-app.use(morgan("dev"));
+app.use(morgan("short"));
 app.use(bodyParser.json());
 
 app.get("/servers", (_, res) => {
