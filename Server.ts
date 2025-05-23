@@ -4,21 +4,21 @@ import EventCollection from "./EventCollection.ts";
 type WledState = unknown;
 
 export default class Server {
-  static instances: Record<string, Server | undefined> = {};
+  static #instances: Record<string, Server | undefined> = {};
   #mutex = new Mutex();
   #events = new EventCollection();
-  host: string;
+  #host: string;
 
   static get hosts() {
-    return Object.keys(this.instances);
+    return Object.keys(this.#instances);
   }
 
   static getByHost(host: string) {
-    return (this.instances[host] ??= new Server(host));
+    return (this.#instances[host] ??= new Server(host));
   }
 
   constructor(host: string) {
-    this.host = host;
+    this.#host = host;
   }
 
   get events() {
@@ -27,17 +27,15 @@ export default class Server {
 
   #getState() {
     return this.#mutex.runExclusive(() =>
-      fetch(`http://${this.host}/json/state`).then((res) => res.json())
+      fetch(`http://${this.#host}/json/state`).then((res) => res.json())
     );
   }
 
   #applyState(state: WledState) {
     return this.#mutex.runExclusive(() =>
-      fetch(`http://${this.host}/json/state`, {
+      fetch(`http://${this.#host}/json/state`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(state),
       }).then((res) => res.json())
     );
