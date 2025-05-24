@@ -41,8 +41,7 @@ export default class Server {
     return this.#mutex.runExclusive(async () => {
       const state = await this.#getState();
       const key = this.#events.create(state);
-
-      console.log("Event created", key, state);
+      console.log("Event created", key);
 
       return key;
     });
@@ -51,9 +50,9 @@ export default class Server {
   async deleteEvent(key: string) {
     return this.#mutex.runExclusive(async () => {
       const state = this.#events.delete(key);
+      console.log("Event deleted", key);
       if (state) await this.#applyState(state);
-
-      console.log("Event deleted", key, state);
+      console.log("Applied state after deleting event", key);
 
       return !!state;
     });
@@ -62,9 +61,9 @@ export default class Server {
   async deleteAllEvents() {
     return this.#mutex.runExclusive(async () => {
       const state = this.#events.deleteAllEvents();
+      console.log("All events deleted");
       if (state) await this.#applyState(state);
-
-      console.log("All events deleted", state);
+      console.log("Applied state after deleting all events");
 
       return !!state;
     });
