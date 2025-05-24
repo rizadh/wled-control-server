@@ -42,18 +42,29 @@ export default class Server {
   }
 
   async createEvent() {
-    return this.#events.create(await this.#getState());
+    const state = await this.#getState();
+    const key = this.#events.create(state);
+
+    console.log("Event created", key, state);
+
+    return key;
   }
 
   async deleteEvent(key: string) {
     const state = this.#events.delete(key);
     if (state) await this.#applyState(state);
+
+    console.log("Event deleted", key, state);
+
     return !!state;
   }
 
   async deleteAllEvents() {
     const state = this.#events.deleteAllEvents();
     if (state) await this.#applyState(state);
+
+    console.log("All events deleted", state);
+
     return !!state;
   }
 }
