@@ -26,11 +26,11 @@ export default class Server {
   }
 
   #getState() {
-    fetch(`http://${this.#host}/json/state`).then((res) => res.json());
+    return fetch(`http://${this.#host}/json/state`).then((res) => res.json());
   }
 
   #applyState(state: WledState) {
-    fetch(`http://${this.#host}/json/state`, {
+    return fetch(`http://${this.#host}/json/state`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(state),
