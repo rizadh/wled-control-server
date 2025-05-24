@@ -25,6 +25,11 @@ export default class EventCollection<S> {
     const nextEvent = this.#events[index + 1];
     const [deletedEvent] = this.#events.splice(index, 1);
 
+    console.log("Events", this.#events);
+    console.log("Index", index);
+    console.log("Deleted event", deletedEvent);
+    console.log("Next event", nextEvent);
+
     if (nextEvent) {
       nextEvent.state = deletedEvent.state;
       return;
