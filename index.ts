@@ -5,6 +5,7 @@ import Server from "./Server.ts";
 import { EventNotFoundError } from "./EventCollection.ts";
 
 const PORT = parseInt(process.env.WLED_CONTROL_SERVER_PORT ?? "3000");
+const HOST = process.env.WLED_CONTROL_SERVER_HOST ?? "0.0.0.0";
 
 const app = express();
 app.use(morgan("short"));
@@ -55,6 +56,6 @@ app.delete("/server/:host/event/:key", async (req, res) => {
   }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Listening on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Listening on ${HOST}:${PORT}`);
 });
